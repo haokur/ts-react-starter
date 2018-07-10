@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-class ListPage extends React.Component {
+export default class ListPage extends React.Component {
     constructor(props) {
         super(props)
         console.log(1)
@@ -12,5 +12,3 @@ class ListPage extends React.Component {
         )
     }
 }
-
-export default ListPage
