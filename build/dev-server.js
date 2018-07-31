@@ -14,12 +14,13 @@ var webpackConfig = process.env.NODE_ENV === 'testing'
   ? require('./webpack.prod.conf')
   : require('./webpack.dev.conf')
 
-const { getLocalIp } = require('./tools')
+const { runServer } = require('./tools')
 
 // default port where dev server listens for incoming traffic
 var port = process.env.PORT || config.dev.port
 // automatically open browser, if not set will be false
 var autoOpenBrowser = !!config.dev.autoOpenBrowser
+
 // Define HTTP proxies to your custom API backend
 // https://github.com/chimurai/http-proxy-middleware
 var proxyTable = config.dev.proxyTable
@@ -66,8 +67,6 @@ app.use(hotMiddleware)
 var staticPath = path.posix.join(config.dev.assetsPublicPath, config.dev.assetsSubDirectory)
 app.use(staticPath, express.static('./static'))
 
-var uri = 'http://localhost:' + port
-
 var _resolve
 var readyPromise = new Promise(resolve => {
   _resolve = resolve
@@ -75,35 +74,20 @@ var readyPromise = new Promise(resolve => {
 
 console.log('> Starting dev server...')
 
-function runServe(portNum) {
-  port = portNum
-  app.listen(portNum)
-    .on('listening', function () {
-      uri = 'http://localhost:' + portNum
-      devMiddleware.waitUntilValid(() => {
-        let allAvailableAddress = getLocalIp('IPv4').map(item => `http://${item}:${portNum}`)
-        console.log(`Available on:\n${allAvailableAddress.join('\n')}`)
-        if (autoOpenBrowser && process.env.NODE_ENV !== 'testing') {
-          opn(uri)
-        }
-        _resolve()
-      })
-    })
-    .on('error', function (err) {
-      // 关掉重启一个新端口
-      // server.close()
-      if (err.code === 'EADDRINUSE') { // 端口已经被使用
-        console.log('The port【' + port + '】 is occupied, try other port.')
-        var nextPort = parseInt(port) + 1
-        runServe(nextPort)
+var server = runServer({
+  server: app,
+  port: port,
+  autoOpen: false,
+  success: function (_server, uri) {
+    console.log('等待 webpack 编译完成...')
+    devMiddleware.waitUntilValid(() => {
+      if (autoOpenBrowser && process.env.NODE_ENV !== 'testing') {
+        opn(uri)
       }
-      else {
-        throw err
-      }
+      _resolve()
     })
-}
-
-var server = runServe(port)
+  }
+})
 
 module.exports = {
   ready: readyPromise,
